@@ -4,5 +4,9 @@ theme: just-the-docs
 
 url: https://ziggoon.github.io/blog
 
+logo: "/img/logo.png"
+
 aux_links:
-  Template Repository: https://github.com/ziggoon/blog
+  github: https://github.com/ziggoon/blog
+
+color_scheme: dark
