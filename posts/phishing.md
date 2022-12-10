@@ -8,7 +8,7 @@ nav_order: 2
 {: .fs-9 }
 
 ---
-{: .note }
+{: .highlight }
 Recently, I performed a phishing engagement using phone calls and text messages which required building VoIP infrastructure. This blog post is designed to help others build out their own infrastructure stack by outlining the steps I took in detail.
 
 
