@@ -5,12 +5,9 @@ nav_order: 2
 ---
 
 # Building Infrastructure for Voice / SMS Phishing Engagements
-{: .fs-9 }
 
----
-{: .highlight }
 Recently, I performed a phishing engagement using phone calls and text messages which required building VoIP infrastructure. This blog post is designed to help others build out their own infrastructure stack by outlining the steps I took in detail.
-
+{: .fs-6 .fw-300 }
 
 So what does it take to make a phone call using a VoIP number at a high-level? Three essenitals:
 
