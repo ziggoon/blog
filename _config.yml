@@ -1,5 +1,5 @@
-title: My Blog
-description: just a simple blog...
+title: Security <3!
+description: Just a simple cybersecurity blog...
 theme: just-the-docs
 
 url: https://ziggoon.github.io/blog
@@ -7,7 +7,7 @@ url: https://ziggoon.github.io/blog
 logo: "/assets/img/logo.jpg"
 
 aux_links:
-  github: https://github.com/ziggoon/blog
+  Github: https://github.com/ziggoon/blog
 
 color_scheme: dark
 
@@ -17,5 +17,5 @@ search:
 
 callouts_level: quiet
 callouts:
-  highlight:
+  highlight: 
     color: purple
