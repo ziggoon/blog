@@ -20,5 +20,5 @@ callouts:
   highlight: 
     color: purple
   note:
-    title: note
+    title: Note
     color: purple
