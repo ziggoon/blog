@@ -4,7 +4,7 @@ theme: just-the-docs
 
 url: https://ziggoon.github.io/blog
 
-logo: "/img/logo.png"
+logo: "/assets/img/logo.jpg"
 
 aux_links:
   github: https://github.com/ziggoon/blog
