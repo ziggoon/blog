@@ -24,10 +24,10 @@ DID Numbers
 {: .label .label-green}
 
 ### PBX
-To start you need a PBX, or private branch exchange, which is software that manages inbound and outbound VoIP calls. 
+To start you need a PBX, or private branch exchange, which is software that manages inbound and outbound VoIP calls. There are many options such as [FreePBX](https://www.freepbx.org/) and [3CX](https://www.3cx.com/). I chose 3CX due to their well-documented AWS installation process.
 
 ### SIP Trunk
-Secondly, a SIP trunk is required to route calls from the PBX using your DID numbers to the global telephone network.
+Secondly, a SIP trunk is required to route calls from the PBX using your DID numbers to the global telephone network. [Twilio](https://www.twilio.com/en-us/sip-trunking) is 100% the best bet when it comes to SIP trunking.
 
 ### DID Number(s)
-Lastly, you need a DID number, which essentially are locally registered phone numbers that are used to provide access to the regular telephone network using VoIP.
+Lastly, you need a DID number, which essentially are locally registered phone numbers that are used to provide access to the regular telephone network using VoIP. Twilio is also the best bet here.
