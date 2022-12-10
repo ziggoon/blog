@@ -9,10 +9,13 @@ logo: "/assets/img/logo.jpg"
 aux_links:
   github: https://github.com/ziggoon/blog
 
+color_scheme: dark
+
 search_enabled: true
 search:
   rel_url: false
 
 callouts_level: quiet
 callouts:
-  highlight: color purple
+  highlight:
+    color: purple
