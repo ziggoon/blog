@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>libc on (ง︡&#39;-&#39;︠)ง</title>
+    <link>http://192.168.69.101:1313/tags/libc/</link>
+    <description>Recent content in libc on (ง︡&#39;-&#39;︠)ง</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 07 Apr 2024 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://192.168.69.101:1313/tags/libc/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>hooking libc 4 fun (in rust)</title>
+      <link>http://192.168.69.101:1313/posts/test/</link>
+      <pubDate>Sun, 07 Apr 2024 00:00:00 +0000</pubDate>
+      <guid>http://192.168.69.101:1313/posts/test/</guid>
+      <description>libc and rusty rootkits</description>
+    </item>
+  </channel>
+</rss>

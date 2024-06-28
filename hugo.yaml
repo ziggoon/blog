@@ -1,0 +1,43 @@
+baseURL: https://ziggoon.lol/
+languageCode: en-us
+title: (ง︡'-'︠)ง
+paginate: 5
+theme: PaperMod
+titleCaseStyle: none
+
+params:
+  description: "bottom text"
+  keywords: [meow, blog, uwu]
+  author: ziggoon
+  DateFormat: "January 2, 2006"
+  defaultTheme: auto
+  disableThemeToggle: false
+
+  ShowReadingTime: true
+  ShowShareButtons: false
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowWordCount: true
+  UseHugoToc: true
+
+  homeInfoParams:
+      Title: "ziggoon.lol"
+      Content: offensive and defensive security 凸(¬‿¬)凸
+      ProfileImage: "misa.png"
+
+  socialIcons:
+    - name: github
+      title: github
+      url: "https://github.com/ziggoon"
+
+menu:
+  main:
+    - identifier: home
+      name: home
+      url: /
+      weight: 5  
+    - identifier: tags
+      name: tags
+      url: tags
+      weight: 10
